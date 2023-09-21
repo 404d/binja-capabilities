@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Iterator
 
 from capa.features.extractors.binja.extractor import BinjaFeatureExtractor
 from capa.features.extractors.base_extractor import BBHandle, FunctionHandle
@@ -168,10 +169,21 @@ class ProgressTrackingBinjaFeatureExtractor(BinjaFeatureExtractor):
             raise ValueError("Must provide a thread argument")
 
         super().__init__(*args, **kwargs)
+        # Stuff needed for forwarding progress data
         self.__thread = thread
 
+        # Progress tracking
+        self.__analyzed_functions = 0
+        self.__total_functions = 1
+
+    def get_functions(self) -> Iterator[FunctionHandle]:
+        """Cache function count for use in progress notifications"""
+        self.__total_functions = len(self.bv.functions)
+        return super().get_functions()
+
     def extract_function_features(self, fh: FunctionHandle):
-        self.__thread.progress = f"{PROGRESS_TEXT}: function at {hex(fh.inner.start)}"
+        self.__analyzed_functions += 1
+        self.__thread.progress = f"{PROGRESS_TEXT}: function {self.__analyzed_functions}/{self.__total_functions} at {hex(fh.inner.start)}"
         return super().extract_function_features(fh)
 
     def extract_file_features(self):
@@ -179,7 +191,7 @@ class ProgressTrackingBinjaFeatureExtractor(BinjaFeatureExtractor):
         return super().extract_file_features()
 
     def extract_basic_block_features(self, fh: FunctionHandle, bbh: BBHandle):
-        self.__thread.progress = f"{PROGRESS_TEXT}: function at {hex(fh.inner.start)} ({repr(bbh.inner[1])})"
+        self.__thread.progress = f"{PROGRESS_TEXT}: function {self.__analyzed_functions}/{self.__total_functions} at {hex(fh.inner.start)} ({repr(bbh.inner[1])})"
         return super().extract_basic_block_features(fh, bbh)
 
 
