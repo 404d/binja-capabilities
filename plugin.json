@@ -1,0 +1,33 @@
+{
+  "pluginmetadataversion": 2,
+  "name": "CAPAbilities",
+  "type": [
+    "core",
+    "ui",
+    "architecture",
+    "binaryview",
+    "helper"
+  ],
+  "api": [
+    "python3"
+  ],
+  "description": "Integrate with Mandiant's FLARE CAPA",
+  "longdescription": "Tag and discover features in a BNDB using CAPA rules.",
+  "license": {
+    "name": "",
+    "text": ""
+  },
+  "platforms": [
+    "Darwin",
+    "Linux",
+    "Windows"
+  ],
+  "dependencies": {
+    "pip": [
+      "flare-capa"
+    ]
+  },
+  "version": "0.1.0",
+  "author": "404'd",
+  "minimumbinaryninjaversion": 4545
+}
