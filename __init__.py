@@ -1,6 +1,7 @@
 from pathlib import Path
 
 from capa.features.extractors.binja.extractor import BinjaFeatureExtractor
+from capa.features.extractors.base_extractor import BBHandle, FunctionHandle
 from capa.rules import Rule, RuleSet, Scope
 from capa.features.common import Result
 from capa.features.address import _NoAddress as NoAddress
@@ -12,6 +13,7 @@ import binaryninja as binja
 RULE_PATH = Path("~/.binaryninja/plugin_data/rules/capa")
 DEFAULT_TAG = "CAPA"
 DEFAULT_ICON = "🤔"
+PROGRESS_TEXT = "Extracting features using CAPA"
 
 
 # Ideas:
@@ -156,6 +158,28 @@ rule_map = {
 }
 
 
+class ProgressTrackingBinjaFeatureExtractor(BinjaFeatureExtractor):
+
+    def __init__(self, *args, thread=None, **kwargs):
+        if not thread:
+            raise ValueError("Must provide a thread argument")
+
+        super().__init__(*args, **kwargs)
+        self.__thread = thread
+
+    def extract_function_features(self, fh: FunctionHandle):
+        self.__thread.progress = f"{PROGRESS_TEXT}: function at {hex(fh.inner.start)}"
+        return super().extract_function_features(fh)
+
+    def extract_file_features(self):
+        self.__thread.progress = f"{PROGRESS_TEXT}: file features"
+        return super().extract_file_features()
+
+    def extract_basic_block_features(self, fh: FunctionHandle, bbh: BBHandle):
+        self.__thread.progress = f"{PROGRESS_TEXT}: function at {hex(fh.inner.start)} ({repr(bbh.inner[1])})"
+        return super().extract_basic_block_features(fh, bbh)
+
+
 def tag_for_rule_meta(rule: Rule):
     namespace = rule.meta.get("namespace", "")
     path = "/".join([namespace, rule.name])
@@ -186,15 +210,16 @@ def get_feature_locations(result: Result):
             yield item
 
 
-def get_features(bv: binja.BinaryView):
+def get_features(bv: binja.BinaryView, thread):
 
     rules_path = RULE_PATH.expanduser().glob("*/")
     rules = capa.get_rules(rules_path)
 
-    extractor = BinjaFeatureExtractor(bv) 
+    extractor = ProgressTrackingBinjaFeatureExtractor(bv, thread=thread) 
     (matches, _) = capa.find_capabilities(rules, extractor)
 
     known_tags = set()
+    thread.progress = f"{PROGRESS_TEXT}: Applying tags"
 
     for rule, resultset in matches.items():
         rule_meta = rules[rule]
@@ -246,9 +271,9 @@ def prep_handlers(bv):
 
         class CapaThread(binja.BackgroundTaskThread):
             def run(self):
-                get_features(bv)
+                get_features(bv, self)
 
-        capajob = CapaThread("Extracting features using CAPA")
+        capajob = CapaThread(f"{PROGRESS_TEXT}...", can_cancel=False)
         capajob.start()
 
     binja.AnalysisCompletionEvent(bv, trigger_capa)
