@@ -18,7 +18,10 @@ PROGRESS_TEXT = "Extracting features using CAPA"
 
 # Ideas:
 # - Some rules marks basic blocks explicitly -- add a mapping for rule to basic block highlight color?
-ignore_rule_matches = [
+ignore_rules = [
+    "contain loop",
+]
+ignore_features_for_rule = [
     "encrypt data using RC4 PRGA",
     "resolve function by parsing PE exports",
     "inspect section memory permissions",
@@ -225,10 +228,10 @@ def get_features(bv: binja.BinaryView, thread):
         rule_meta = rules[rule]
         binja.log_info(f"Rule: {rule_meta.meta.get('namespace', '_')}/{rule_meta.name}")
 
-        if "/" in rule and not rule_meta.scope is Scope.FILE:
+        if rule in ignore_rules:
             continue
 
-        if "contain loop" in rule:
+        if "/" in rule and not rule_meta.scope is Scope.FILE:
             continue
 
         # Figure out what tag to use
@@ -250,7 +253,7 @@ def get_features(bv: binja.BinaryView, thread):
                     func.add_tag(tag_name, rule)
 
             # Skip tagging features for certain rules
-            if rule in ignore_rule_matches:
+            if rule in ignore_features_for_rule:
                 continue
 
             # Extract feature match locations
