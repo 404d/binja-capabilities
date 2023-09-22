@@ -17,8 +17,17 @@ DEFAULT_ICON = "🤔"
 PROGRESS_TEXT = "Extracting features using CAPA"
 
 
-# Ideas:
+# Ideas and TODO:
 # - Some rules marks basic blocks explicitly -- add a mapping for rule to basic block highlight color?
+# - Deduplicate tags on same address:
+#   - Some rules get multiple features matched on one ASM instruction
+# - Run on function only
+# - Rerun on binary
+# - Cache and store CAPA results
+#   - Prerequisite for allowing customizable tag settings
+# - Don't re-create already existing tags
+# - Take Windows into account for rule path
+# - Download rules automatically on first install
 ignore_rules = [
     "contain loop",
 ]
